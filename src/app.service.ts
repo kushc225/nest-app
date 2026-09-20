@@ -6,7 +6,6 @@ export interface Product {
   category: string;
   price: number;
 }
-
 @Injectable()
 export class AppService {
   private readonly products: Product[] = [
