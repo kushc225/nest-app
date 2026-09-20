@@ -10,17 +10,17 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @Get('products')
+  @Get('productss')
   getProducts() {
     return this.appService.getProducts();
   }
 
-  @Get('products/filter')
+  @Get('productss/filter')
   filterProducts(@Query('category') category?: string) {
     return this.appService.filterProducts(category);
   }
 
-  @Get('products/:id')
+  @Get('productss/:id')
   getProduct(@Param('id') id: string) {
     return this.appService.getProduct(Number(id));
   }
