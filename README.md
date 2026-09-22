@@ -44,6 +44,25 @@ $ pnpm run start:dev
 $ pnpm run start:prod
 ```
 
+## Run with Docker
+
+```bash
+docker build -t nest-app .
+docker run --rm -p 3000:3000 nest-app
+```
+
+The application is available at `http://localhost:3000`.
+
+## Automatic EC2 deployment
+
+The workflow in `.github/workflows/deploy.yml` runs on every push to `main`. It connects to EC2 over SSH, pulls the latest code, builds the Docker image, and replaces the running container. Node.js, pnpm, and PM2 are not required on EC2.
+
+Install Docker on the EC2 instance once, clone this repository into `~/nest-app`, and make sure the EC2 security group allows port `3000` (or place the container behind your reverse proxy). Add these GitHub repository secrets:
+
+- `EC2_HOST`
+- `EC2_USER`
+- `EC2_SSH_KEY`
+
 ## Run tests
 
 ```bash

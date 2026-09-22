@@ -17,22 +17,21 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
-            script: |
-             set -e
+            set -e
 
-             export PATH="$HOME/.local/share/pnpm/bin:$PATH"
+            cd ~/nest-app
+            git pull origin main
 
-             cd ~/nest-app
+            # Build first so a failed build does not stop the current container.
+            docker build --pull -t nest-app:latest .
 
-             git pull origin main
-             pnpm install --frozen-lockfile
-             pnpm test
-             pnpm build
+            docker rm -f nest-app || true
+            docker run -d \
+              --name nest-app \
+              --restart unless-stopped \
+              -p 3000:3000 \
+              nest-app:latest
 
-             pm2 restart nest-app
-
-             echo "Checking PM2..."
-             pm2 status
-
-             echo "Recent logs..."
-             pm2 logs nest-app --lines 20 --nostream
+            docker image prune -f
+            docker ps --filter name=nest-app
+            docker logs --tail 20 nest-app
