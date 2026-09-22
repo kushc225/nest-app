@@ -16,11 +16,18 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: GITHUB_REPOSITORY
           script: |
             set -e
 
-            cd ~/nest-app
-            git pull origin main
+            if [ -d "$HOME/nest-app/.git" ]; then
+              cd "$HOME/nest-app"
+              git fetch origin main
+              git reset --hard origin/main
+            else
+              git clone --branch main "https://github.com/${GITHUB_REPOSITORY}.git" "$HOME/nest-app"
+              cd "$HOME/nest-app"
+            fi
 
             # Build first so a failed build does not stop the current container.
             docker build --pull -t nest-app:latest .
