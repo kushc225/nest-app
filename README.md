@@ -55,13 +55,16 @@ The application is available at `http://localhost:3000`.
 
 ## Automatic EC2 deployment
 
-The workflow in `.github/workflows/deploy.yml` runs on every push to `main`. It connects to EC2 over SSH, clones the repository on the first deployment (then fetches the latest code), builds the Docker image, and replaces the running container. Node.js, pnpm, and PM2 are not required on EC2.
+The workflow in `.github/workflows/deploy.yml` runs on every push to `main`. GitHub Actions builds the Docker image and publishes it to GitHub Container Registry, then connects to EC2 over SSH and replaces the running container with that image. Node.js, pnpm, Git, and PM2 are not required on EC2.
 
-Install Docker and Git on the EC2 instance once, and make sure the EC2 security group allows port `3000` (or place the container behind your reverse proxy). For a private repository, configure a GitHub deploy key on EC2 or switch to pushing images to a registry. Add these GitHub repository secrets:
+Install Docker on the EC2 instance once, and make sure the EC2 security group allows port `3000` (or place the container behind your reverse proxy). Add these GitHub repository secrets:
 
 - `EC2_HOST`
 - `EC2_USER`
 - `EC2_SSH_KEY`
+- `GHCR_TOKEN` (a GitHub personal access token with `read:packages` permission)
+
+The first published GHCR package may be private by default. Either make the package public or keep `GHCR_TOKEN` configured so EC2 can pull it.
 
 ## Run tests
 

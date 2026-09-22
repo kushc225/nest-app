@@ -5,8 +5,43 @@ on:
     branches:
       - main
 
+GHCR_TOKENpermissions:
+  contents: read
+  packages: write
+
 jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    outputs:
+      image: ${{ steps.image.outputs.name }}
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.image.outputs.name }}:latest
+            ${{ steps.image.outputs.name }}:${{ github.sha }}
+
   deploy:
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
@@ -16,29 +51,26 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          envs: GITHUB_REPOSITORY
+          envs: IMAGE_NAME IMAGE_TAG GHCR_USERNAME GHCR_TOKEN
           script: |
             set -e
 
-            if [ -d "$HOME/nest-app/.git" ]; then
-              cd "$HOME/nest-app"
-              git fetch origin main
-              git reset --hard origin/main
-            else
-              git clone --branch main "https://github.com/${GITHUB_REPOSITORY}.git" "$HOME/nest-app"
-              cd "$HOME/nest-app"
-            fi
-
-            # Build first so a failed build does not stop the current container.
-            docker build --pull -t nest-app:latest .
+            echo "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+            docker pull "$IMAGE_NAME:$IMAGE_TAG"
 
             docker rm -f nest-app || true
             docker run -d \
               --name nest-app \
               --restart unless-stopped \
               -p 3000:3000 \
-              nest-app:latest
+              "$IMAGE_NAME:$IMAGE_TAG"
 
+            docker logout ghcr.io
             docker image prune -f
             docker ps --filter name=nest-app
             docker logs --tail 20 nest-app
+        env:
+          IMAGE_NAME: ${{ needs.build.outputs.image }}
+          IMAGE_TAG: ${{ github.sha }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
