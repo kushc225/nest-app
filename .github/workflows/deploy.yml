@@ -64,7 +64,7 @@ jobs:
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
           source: "nginx/default.conf"
-          target: "/home/${{ secrets.EC2_USER }}/nest-app/nginx"
+          target: "/home/${{ secrets.EC2_USER }}/nest-app"
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.2
