@@ -48,14 +48,23 @@ jobs:
       - name: Check out deployment files
         uses: actions/checkout@v4
 
-      - name: Copy Docker Compose and Nginx configuration
+      - name: Copy Docker Compose file
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          source: "docker-compose.yml,nginx"
-          target: "/opt/nest-app"
+          source: "docker-compose.yml"
+          target: "/home/${{ secrets.EC2_USER }}/nest-app"
+
+      - name: Copy Nginx configuration
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "nginx/default.conf"
+          target: "/home/${{ secrets.EC2_USER }}/nest-app/nginx"
 
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.2
@@ -75,10 +84,15 @@ jobs:
               --username "$GHCR_USERNAME" \
               --password-stdin
 
+            echo "Preparing deploy directory..."
+
+            export DEPLOY_DIR="/home/${EC2_USER}/nest-app"
+            mkdir -p "$DEPLOY_DIR/nginx"
+            cd "$DEPLOY_DIR"
+
             echo "Pulling Docker image..."
 
             export NEST_IMAGE="$IMAGE_NAME:$IMAGE_TAG"
-            cd /opt/nest-app
             docker compose pull
 
             echo "Removing old direct container if present..."
