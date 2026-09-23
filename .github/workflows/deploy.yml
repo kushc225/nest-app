@@ -45,6 +45,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check out deployment files
+        uses: actions/checkout@v4
+
+      - name: Copy Docker Compose and Nginx configuration
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "docker-compose.yml,nginx"
+          target: "/opt/nest-app"
+
       - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.2.2
         with:
@@ -65,19 +77,17 @@ jobs:
 
             echo "Pulling Docker image..."
 
-            docker pull "$IMAGE_NAME:$IMAGE_TAG"
+            export NEST_IMAGE="$IMAGE_NAME:$IMAGE_TAG"
+            cd /opt/nest-app
+            docker compose pull
 
-            echo "Removing old container..."
+            echo "Removing old direct container if present..."
 
             docker rm -f nest-app || true
 
-            echo "Starting new container..."
+            echo "Starting NestJS and Nginx..."
 
-            docker run -d \
-              --name nest-app \
-              --restart unless-stopped \
-              -p 3000:3000 \
-              "$IMAGE_NAME:$IMAGE_TAG"
+            docker compose up -d --no-build
 
             echo "Logging out from GHCR..."
 
@@ -89,11 +99,11 @@ jobs:
 
             echo "Container status..."
 
-            docker ps --filter name=nest-app
+            docker compose ps
 
             echo "Application logs..."
 
-            docker logs --tail 20 nest-app
+            docker compose logs --tail 20 nest-app nginx
 
         env:
           IMAGE_NAME: ${{ needs.build.outputs.image }}

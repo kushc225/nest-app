@@ -47,17 +47,16 @@ $ pnpm run start:prod
 ## Run with Docker
 
 ```bash
-docker build -t nest-app .
-docker run --rm -p 3000:3000 nest-app
+docker compose up --build
 ```
 
-The application is available at `http://localhost:3000`.
+Nginx is available at `http://localhost` and forwards requests to NestJS over the private Docker network. The NestJS container does not publish port `3000` to the host.
 
 ## Automatic EC2 deployment
 
 The workflow in `.github/workflows/deploy.yml` runs on every push to `main`. GitHub Actions builds the Docker image and publishes it to GitHub Container Registry, then connects to EC2 over SSH and replaces the running container with that image. Node.js, pnpm, Git, and PM2 are not required on EC2.
 
-Install Docker on the EC2 instance once, and make sure the EC2 security group allows port `3000` (or place the container behind your reverse proxy). Add these GitHub repository secrets:
+Install Docker and Docker Compose on the EC2 instance once, and make sure the EC2 security group allows port `80`. The deployment copies `docker-compose.yml` and the Nginx configuration to `/opt/nest-app`, then runs both containers. Add these GitHub repository secrets:
 
 - `EC2_HOST`
 - `EC2_USER`
